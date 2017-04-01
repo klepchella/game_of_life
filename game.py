@@ -1,40 +1,48 @@
 #!/usr/bin/python3
 
-import tkinter as tk
-from time import sleep
-import Board
-from os import system
+import Cell
+from random import randint
 
-def drawState():
-    for i in range(numCells):
-        for j in range(numCells):
-            if field.cells[i][j].currentState == 1:
-                canv.create_rectangle(
-                field.cells[i][j].xCoord * field.cells[i][j].size, field.cells[i][j].yCoord * field.cells[i][j].size, (field.cells[i][j].xCoord + 1) * field.cells[i][j].size,
-                (field.cells[i][j].yCoord + 1) * field.cells[i][j].size, fill='blue', outline='black')
-            else:
-                canv.create_rectangle(
-                field.cells[i][j].xCoord * field.cells[i][j].size, field.cells[i][j].yCoord * field.cells[i][j].size, (field.cells[i][j].xCoord + 1) * field.cells[i][j].size,
-                (field.cells[i][j].yCoord + 1) * field.cells[i][j].size, fill='white', outline='black')
-    sleep(1)
-    root.update()
+class Board:
 
-fieldSize = 500
-numCells = 25
-system('clear')
-# запилили окошко
-root = tk.Tk()
-root.title('Игра "Жизнь" v2.0')
-root.geometry(str(fieldSize) + 'x' + str(fieldSize))
-canv = tk.Canvas(root, width=fieldSize, height=fieldSize, bg='red')
-canv.pack()
+# заполнили поле начальным состоянием
+    def fillBoard(self):
+        for i in range(self.numberCells):
+            self.cells[i] = []
+            for j in range(self.numberCells):
+                self.cells[i].append(Cell.Cell(self.numberCells, i, j, randint(0, 1000) % 2, int(round(self.boardSize / self.numberCells))))
 
-# пилим поле с клетками
-field = Board.Board(fieldSize, numCells)
-field.fillBoard()
+# создали доску
+    def __init__(self, bSize = 500, nCells = 10):
+        self.boardSize = bSize
+        self.numberCells = nCells
+        self.cells = [Cell.Cell] * self.numberCells
+        for i in range(self.numberCells):
+            self.cells[i] = [Cell.Cell] * self.numberCells
+        self.isEnd = 1
 
-while field.isEnd != 0:
-    drawState()
-    field.nextConfiguration()
-print('End!')
-root.mainloop()
+# получили кол-во соседей для клетки
+    def getNeigh(self, i, j):
+        self.cells[i][j].neighbors = 0
+
+        for k in range(i - 1, i + 2, 1):
+            for l in range(j - 1, j + 2, 1):
+                if k != i or l != j:
+                    if self.cells[k % self.numberCells][l % self.numberCells].currentState != 0:
+                        self.cells[i][j].neighbors += 1
+
+# пересчет текущей конфигурации:
+# для каждой из ячеек получаем кол-во соседей и в зависимости от него ставим статус
+    def nextConfiguration(self):
+        self.isEnd = 0
+        for string in self.cells:
+            for curCell in string:
+                self.getNeigh(curCell.xCoord, curCell.yCoord)
+                curCell.lifeLaw()   # получили следующий статус клетки
+
+        for string in self.cells:
+            for curCell in string:
+                if curCell.currentState != curCell.nextState: # проверяем, были ли изменения
+                    self.isEnd += 1
+                curCell.currentState = curCell.nextState
+                curCell.nextState = 0
